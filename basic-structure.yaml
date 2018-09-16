@@ -1,0 +1,7 @@
+---
+  Description: "A text description for the template usage"
+  Parameters:
+  Resources:
+  Outputs:
+  AWSTemplateFormatVersion: "2010-09-09"
+
