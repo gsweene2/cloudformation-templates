@@ -1,0 +1,78 @@
+---
+  Description: "A text description for the template usage"
+
+  Parameters:
+    MaxSizeASG:
+      Description: "Enter the Max Size for the ASG"
+      Type: String
+    MinSizeASG:
+      Description: "Enter the Min Size for the ASG"
+      Type: String
+    DesiredCapacityASG:
+      Description: "Enter the desired capacity for the ASG"
+      Type: String
+    VPCZoneIdentifier:
+      Description: "List the Subnet Ids of the instances"
+      Type: List<AWS::EC2::Subnet::Id>
+    KeyName:
+      Description: "EC2 instance key name"
+      Type: String
+    InstanceType:
+      Description: "EC2 instance type"
+      Type: String
+    InstanceSecurityGroup:
+      Description: "List of Security Group IDs"
+      Type: List<AWS::EC2::SecurityGroup::Id>
+
+  Mappings: 
+    RegionMap: 
+      us-east-1: 
+        HVM64: "ami-0ff8a91507f77f867"
+      us-west-1: 
+        HVM64: "ami-0bdb828fd58c52235"
+
+  Resources:
+    AutoScalingGroup:
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties:
+        AutoScalingGroupName: Garretts Cfn Autoscaling Group
+        Cooldown: 120
+        DesiredCapacity:
+          Ref: DesiredCapacityASG
+        LaunchConfigurationName: String
+        LoadBalancerNames:
+          - String
+        MaxSize:
+          Ref: MaxSizeASG
+        MetricsCollection:
+          - MetricsCollection
+        MinSize:
+          Ref: MinSizeASG
+        Tags:
+          -
+            Key: Name
+            Value: Garretts Cfn ASG
+        VPCZoneIdentifier:
+          Ref: VPCZoneIdentifier
+    LaunchConfig: 
+      Type: AWS::AutoScaling::LaunchConfiguration
+      Properties: 
+        KeyName: 
+          Ref: KeyName
+        ImageId: !FindInMap [ RegionMap, !Ref "AWS::Region", HVM64 ]
+        SecurityGroups: 
+          Ref: "InstanceSecurityGroup"
+        InstanceType: 
+          Ref: "InstanceType"
+
+  Outputs: 
+    AutoscalingGroup: 
+      Description: "The newly created asg"
+      Value: 
+        Ref: "AutoScalingGroup"
+    LaunchConfig:
+      Description: "the newly created launch config"
+      Value:
+        Ref: "LaunchConfig"
+        
+  AWSTemplateFormatVersion: "2010-09-09"
