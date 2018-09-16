@@ -4,13 +4,21 @@
     KeyPair: 
       Description: "The EC2 Key Pair to allow SSH access to the instance"
       Type: "String"
+    ImageId:
+      Description: "The ImageId for EC2 Instances"
+      Type: "String"
   Resources: 
     Ec2Instance: 
       Type: "AWS::EC2::Instance"
       Properties: 
         KeyName: 
           Ref: "KeyPair"
-        ImageId: "ami-3b355a52"
+        ImageId:
+          Ref: "ImageId"
+        Tags:
+          - 
+            Key: Name
+            Value: Garretts Cfn Instance
   Outputs: 
     InstanceId: 
       Description: "The InstanceId of the newly created EC2 instance"
