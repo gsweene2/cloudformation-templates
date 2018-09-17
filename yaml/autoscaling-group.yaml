@@ -39,19 +39,16 @@
         Cooldown: 120
         DesiredCapacity:
           Ref: DesiredCapacityASG
-        LaunchConfigurationName: String
-        LoadBalancerNames:
-          - String
+        LaunchConfigurationName: GarrettCfnLaunchConfiguration 
         MaxSize:
-          Ref: MaxSizeASG
-        MetricsCollection:
-          - MetricsCollection
+          Ref: MaxSizeASGs
         MinSize:
           Ref: MinSizeASG
         Tags:
           -
             Key: Name
             Value: Garretts Cfn ASG
+            PropagateAtLaunch: 'true'
         VPCZoneIdentifier:
           Ref: VPCZoneIdentifier
     LaunchConfig: 
@@ -64,6 +61,7 @@
           Ref: "InstanceSecurityGroup"
         InstanceType: 
           Ref: "InstanceType"
+        LaunchConfigurationName: GarrettCfnLaunchConfiguration  
 
   Outputs: 
     AutoscalingGroup: 
