@@ -1,5 +1,5 @@
 ---
-  Description: "A text description for the template usage"
+  Description: "Creates ASG with Specified Min, Max, and desired capacity in each specified subnet"
 
   Parameters:
     MaxSizeASG:
