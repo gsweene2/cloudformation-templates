@@ -1,0 +1,150 @@
+---
+  Description: "A Cfn template that included the infrastructure to build a basic httpd web application"
+    Parameters:
+      CidrBlockAzA:
+        Type: String   
+      CidrBlockAzB:
+        Type: String  
+      VpcId:
+        Type: String     
+      CidrBlock:
+        Type: String
+      VpcId:
+        Type: AWS::EC2::VPC::Id          
+      FirstSubnet:
+        Type: AWS::EC2::Subnet::Id
+      SecondSubnet:
+        Type: AWS::EC2::Subnet::Id
+      KeyName:
+        Type: String
+      ImageId:
+        Type: String  
+      InstanceType:
+        Type: String  
+  Resources:
+    myVPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: !Ref CidrBlock
+        EnableDnsSupport: 'false'
+        EnableDnsHostnames: 'false'
+        InstanceTenancy: dedicated
+        Tags:
+        - Key: Name
+          Value: garretts-cfn-vpc
+    SubnetAzA:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: VpcId
+        CidrBlock: !Ref CidrBlockAzA
+        AvailabilityZone: "us-west-2a"
+        Tags:
+        - Key: Name
+          Value: garretts-cfn-subnet 
+    SubnetAzB:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: VpcId
+        CidrBlock: !Ref CidrBlockAzB
+        AvailabilityZone: "us-west-2b"
+        Tags:
+        - Key: Name
+          Value: garretts-cfn-subnet         
+    FirstEIP:
+      Type: AWS::EC2::EIP
+      Properties:
+        Domain: vpc
+    SecondEIP:
+      Type: AWS::EC2::EIP
+      Properties:
+        Domain: vpc
+    LoadBalancer:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+        SubnetMappings:
+          - AllocationId: !GetAtt 
+              - FirstEIP
+              - AllocationId
+            SubnetId: !Ref FirstSubnet
+          - AllocationId: !GetAtt 
+              - SecondEIP
+              - AllocationId
+            SubnetId: !Ref SecondSubnet
+        Type: application
+        IpAddressType: ipv4
+    TargetGroup:
+      Type: AWS::ElasticLoadBalancingV2::TargetGroup
+      Properties:
+        Port: 1000
+        Protocol: HTTPS
+        TargetType: instance
+        VpcId: !Ref VpcId
+    Listener:
+      Type: AWS::ElasticLoadBalancingV2::Listener
+      Properties:
+          DefaultActions:
+          - Type: forward
+          TargetGroupArn:
+              Ref: myTargetGroup
+          LoadBalancerArn:
+          Ref: myLoadBalancer
+          Port: '8000'
+          Protocol: HTTP
+    InstanceSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allow http to client host
+        VpcId:
+          Ref: myVPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: -1
+          ToPort: 22
+          CidrIp: 0.0.0.0/0  
+        SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+    LaunchConfig: 
+      Type: AWS::AutoScaling::LaunchConfiguration
+      Properties: 
+        KeyName: 
+          Ref: "KeyName"
+        ImageId: 
+          Ref: "ImageId"
+        UserData: 
+        SecurityGroups: 
+          - Ref: "InstanceSecurityGroup"
+        InstanceType: 
+          Ref: "InstanceType"
+        BlockDeviceMappings: 
+          - DeviceName: "/dev/sda1"
+            Ebs: 
+              VolumeSize: "50"
+              VolumeType: "io1"
+              Iops: 200
+          - DeviceName: "/dev/sdm"
+            Ebs: 
+              VolumeSize: "100"
+              DeleteOnTermination: "true"  
+    AutoScalingGroup:          
+      Type: AWS::AutoScaling::AutoScalingGroup
+      Properties: 
+        LaunchConfigurationName: 
+          Ref: "LaunchConfig"
+        MinSize: "2"
+        MaxSize: "2"
+        TargetGroupARNs:
+          - Ref: TargetGroup
+        VPCZoneIdentifier:
+          - Ref: mySubnet
+      DependsOn: LaunchConfig
+  Outputs:   
+  AWSTemplateFormatVersion: '2010-09-09' 
