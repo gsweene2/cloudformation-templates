@@ -1,12 +1,12 @@
 ---
   Description: "A Cfn template that included the infrastructure to build a basic httpd web application"
   Parameters:
-    CidrBlockAzA:
+    PrivateCidrBlockAzA:
       Type: String
-      Default: "10.0.0.0/24"   
-    CidrBlockAzB:
+      Default: "10.0.2.0/24"   
+    PrivateCidrBlockAzB:
       Type: String
-      Default: "10.0.0.0/24"      
+      Default: "10.0.1.0/24"      
     VpcCidrBlock:
       Type: String
       Default: "10.0.0.0/16"        
@@ -30,22 +30,52 @@
         Tags:
         - Key: Name
           Value: garretts-cfn-vpc
-    SubnetAzA:
+    RouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId:
+          Ref: myVPC
+        Tags:
+        - Key: foo
+          Value: bar
+      DependsOn: myVPC          
+    MyInternetGateway:
+      Type: AWS::EC2::InternetGateway
+    AttachGateway:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+        VpcId: !Ref myVPC
+        InternetGatewayId: !Ref MyInternetGateway
+      DependsOn:
+        - MyInternetGateway
+        - myVPC
+    Route:
+      Type: AWS::EC2::Route
+      DependsOn: GatewayToInternet
+      Properties:
+        RouteTableId:
+          Ref: RouteTable
+        DestinationCidrBlock: 0.0.0.0/0
+        GatewayId:
+          Ref: MyInternetGateway     
+      DependsOn: 
+        - AttachGateway    
+    PrivateSubnetAzA:
       Type: AWS::EC2::Subnet
       Properties:
         VpcId:
           Ref: myVPC
-        CidrBlock: !Ref CidrBlockAzA
+        CidrBlock: !Ref PrivateCidrBlockAzA
         AvailabilityZone: "us-west-2a"
         Tags:
         - Key: Name
           Value: garretts-cfn-subnet 
-    SubnetAzB:
+    PrivateSubnetAzB:
       Type: AWS::EC2::Subnet
       Properties:
         VpcId:
           Ref: myVPC
-        CidrBlock: !Ref CidrBlockAzB
+        CidrBlock: !Ref PrivateCidrBlockAzB
         AvailabilityZone: "us-west-2b"
         Tags:
         - Key: Name
@@ -65,13 +95,14 @@
           - AllocationId: !GetAtt 
               - FirstEIP
               - AllocationId
-            SubnetId: !Ref CidrBlockAzA
+            SubnetId: !Ref PrivateSubnetAzA
           - AllocationId: !GetAtt 
               - SecondEIP
               - AllocationId
-            SubnetId: !Ref CidrBlockAzB
-        Type: application
+            SubnetId: !Ref PrivateSubnetAzB
+        Type: network
         IpAddressType: ipv4
+      DependsOn: Route  
     TargetGroup:
       Type: AWS::ElasticLoadBalancingV2::TargetGroup
       Properties:
@@ -90,6 +121,9 @@
             Ref: LoadBalancer
           Port: '8000'
           Protocol: HTTP
+      DependsOn:
+        - LoadBalancer
+        - TargetGroup    
     InstanceSecurityGroup:
       Type: AWS::EC2::SecurityGroup
       Properties:
@@ -102,7 +136,7 @@
           ToPort: 80
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: -1
+          FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0  
         SecurityGroupEgress:
@@ -126,16 +160,7 @@
           - Ref: "InstanceSecurityGroup"
         InstanceType: 
           Ref: "InstanceType"
-        BlockDeviceMappings: 
-          - DeviceName: "/dev/sda1"
-            Ebs: 
-              VolumeSize: "50"
-              VolumeType: "io1"
-              Iops: 200
-          - DeviceName: "/dev/sdm"
-            Ebs: 
-              VolumeSize: "100"
-              DeleteOnTermination: "true"  
+      DependsOn: InstanceSecurityGroup    
     AutoScalingGroup:          
       Type: AWS::AutoScaling::AutoScalingGroup
       Properties: 
@@ -146,8 +171,8 @@
         TargetGroupARNs:
           - Ref: TargetGroup
         VPCZoneIdentifier:
-          - Ref: SubnetAzA
-          - Ref: SubnetAzB
+          - Ref: PrivateSubnetAzA
+          - Ref: PrivateSubnetAzB
       DependsOn: LaunchConfig
   Outputs:   
     AutoScalingGroup:
