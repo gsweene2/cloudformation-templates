@@ -2,21 +2,23 @@
   Description: "A Cfn template that included the infrastructure to build a basic httpd web application"
   Parameters:
     CidrBlockAzA:
-      Type: String   
+      Type: String
+      Default: "10.0.0.0/24"   
     CidrBlockAzB:
-      Type: String  
-    VpcId:
-      Type: String     
+      Type: String
+      Default: "10.0.0.0/24"      
     VpcCidrBlock:
       Type: String
-    VpcId:
-      Type: AWS::EC2::VPC::Id          
+      Default: "10.0.0.0/16"        
     KeyName:
       Type: String
+      Default: "garrett-keypair"
     ImageId:
       Type: String  
+      Default: "ami-a0cfeed8"
     InstanceType:
       Type: String  
+      Default: "t2.medium"
   Resources:
     myVPC:
       Type: AWS::EC2::VPC
@@ -32,7 +34,7 @@
       Type: AWS::EC2::Subnet
       Properties:
         VpcId:
-          Ref: VpcId
+          Ref: myVPC
         CidrBlock: !Ref CidrBlockAzA
         AvailabilityZone: "us-west-2a"
         Tags:
@@ -42,7 +44,7 @@
       Type: AWS::EC2::Subnet
       Properties:
         VpcId:
-          Ref: VpcId
+          Ref: myVPC
         CidrBlock: !Ref CidrBlockAzB
         AvailabilityZone: "us-west-2b"
         Tags:
@@ -76,7 +78,7 @@
         Port: 1000
         Protocol: HTTPS
         TargetType: instance
-        VpcId: !Ref VpcId
+        VpcId: !Ref myVPC
     Listener:
       Type: AWS::ElasticLoadBalancingV2::Listener
       Properties:
