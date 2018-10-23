@@ -1,31 +1,27 @@
 ---
   Description: "A Cfn template that included the infrastructure to build a basic httpd web application"
-    Parameters:
-      CidrBlockAzA:
-        Type: String   
-      CidrBlockAzB:
-        Type: String  
-      VpcId:
-        Type: String     
-      CidrBlock:
-        Type: String
-      VpcId:
-        Type: AWS::EC2::VPC::Id          
-      FirstSubnet:
-        Type: AWS::EC2::Subnet::Id
-      SecondSubnet:
-        Type: AWS::EC2::Subnet::Id
-      KeyName:
-        Type: String
-      ImageId:
-        Type: String  
-      InstanceType:
-        Type: String  
+  Parameters:
+    CidrBlockAzA:
+      Type: String   
+    CidrBlockAzB:
+      Type: String  
+    VpcId:
+      Type: String     
+    VpcCidrBlock:
+      Type: String
+    VpcId:
+      Type: AWS::EC2::VPC::Id          
+    KeyName:
+      Type: String
+    ImageId:
+      Type: String  
+    InstanceType:
+      Type: String  
   Resources:
     myVPC:
       Type: AWS::EC2::VPC
       Properties:
-        CidrBlock: !Ref CidrBlock
+        CidrBlock: !Ref VpcCidrBlock
         EnableDnsSupport: 'false'
         EnableDnsHostnames: 'false'
         InstanceTenancy: dedicated
@@ -67,11 +63,11 @@
           - AllocationId: !GetAtt 
               - FirstEIP
               - AllocationId
-            SubnetId: !Ref FirstSubnet
+            SubnetId: !Ref CidrBlockAzA
           - AllocationId: !GetAtt 
               - SecondEIP
               - AllocationId
-            SubnetId: !Ref SecondSubnet
+            SubnetId: !Ref CidrBlockAzB
         Type: application
         IpAddressType: ipv4
     TargetGroup:
@@ -87,9 +83,9 @@
           DefaultActions:
           - Type: forward
           TargetGroupArn:
-              Ref: myTargetGroup
+              Ref: TargetGroup
           LoadBalancerArn:
-          Ref: myLoadBalancer
+            Ref: LoadBalancer
           Port: '8000'
           Protocol: HTTP
     InstanceSecurityGroup:
@@ -120,6 +116,10 @@
         ImageId: 
           Ref: "ImageId"
         UserData: 
+          Fn::Base64: 
+            !Sub |
+              yum update -y
+              yum install httpd -y
         SecurityGroups: 
           - Ref: "InstanceSecurityGroup"
         InstanceType: 
@@ -144,7 +144,20 @@
         TargetGroupARNs:
           - Ref: TargetGroup
         VPCZoneIdentifier:
-          - Ref: mySubnet
+          - Ref: SubnetAzA
+          - Ref: SubnetAzB
       DependsOn: LaunchConfig
   Outputs:   
+    AutoScalingGroup:
+      Description: "The newly created asg"
+      Value:
+        Ref: "AutoScalingGroup"
+    LaunchConfig:
+      Description: "the newly created launch config"
+      Value:
+        Ref: "LaunchConfig"
+    TargetGroup:
+      Description: "newly created target group"
+      Value:
+        Ref: "TargetGroup"    
   AWSTemplateFormatVersion: '2010-09-09' 
