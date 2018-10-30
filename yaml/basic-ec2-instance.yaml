@@ -1,5 +1,5 @@
 ---
-  Description: "Create an EC2 instance running the Amazon Linux 32 bit AMI."
+  Description: "Create an EC2 instance"
   Parameters: 
     KeyPair: 
       Description: "The EC2 Key Pair to allow SSH access to the instance"

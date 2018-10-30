@@ -1,0 +1,90 @@
+---
+  Description: "Create an EC2 instance"
+  Parameters: 
+    KeyPair: 
+      Description: "The EC2 Key Pair to allow SSH access to the instance"
+      Type: "String"
+      Default: "garrett-httpd-keypair"
+    ImageId:
+      Description: "The ImageId for EC2 Instances"
+      Type: "String"
+      Default: "ami-28e07e50"
+    SSHLocation:
+      Description: "Allow SSH to instance from this IP"
+      Type: "String"  
+    PublicSubnet:
+      Description: "Public Subnet to Launch Instance"
+      Type: "AWS::EC2::Subnet::Id"
+    VpcId:
+      Description: VpcId for the SG  
+      Type: AWS::EC2::VPC::Id
+  Resources: 
+    InstanceSecurityGroup: 
+      Type: "AWS::EC2::SecurityGroup"
+      Properties: 
+        VpcId: 
+          Ref: "VpcId"
+        GroupDescription: "Enable SSH access via port 22"
+        SecurityGroupIngress: 
+          - 
+            IpProtocol: "tcp"
+            FromPort: "22"
+            ToPort: "22"
+            CidrIp: 
+              Ref: "SSHLocation"
+          - 
+            IpProtocol: "tcp"
+            FromPort: "80"
+            ToPort: "80"
+            CidrIp: "0.0.0.0/0"
+    Ec2Instance: 
+      Type: "AWS::EC2::Instance"
+      Properties: 
+        KeyName: 
+          Ref: "KeyPair"
+        ImageId:
+          Ref: "ImageId"
+        Tags:
+          - 
+            Key: Name
+            Value: Garretts Cfn Instance
+        UserData:
+          Fn::Base64: 
+            !Sub |
+              #!/bin/bash
+              yum update -y
+              yum install httpd -y
+
+              cat <<EOF > /var/www/html/index.html
+              
+              <!DOCTYPE html>
+              <html>
+              <head>
+              <title>Garrett's Webpage</title>
+              </head>
+              <body>
+
+              <h1>Welcome to Garrett's Sweet Webpage</h1>
+              <p>This is a paragraph.</p>
+
+              </body>
+              </html>
+
+              EOF
+
+              systemctl start httpd
+
+        NetworkInterfaces: 
+          - AssociatePublicIpAddress: "true"
+            DeviceIndex: "0"
+            GroupSet: 
+              - Ref: "InstanceSecurityGroup"
+            SubnetId: 
+              Ref: "PublicSubnet"      
+  Outputs: 
+    InstanceId: 
+      Description: "The InstanceId of the newly created EC2 instance"
+      Value: 
+        Ref: "Ec2Instance"
+  AWSTemplateFormatVersion: "2010-09-09"
+
